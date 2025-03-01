@@ -15,6 +15,7 @@ cp libftd2xx.* /usr/local/lib
 chmod 0755 /usr/local/lib/libftd2xx.so.1.4.27 
 ln -sf /usr/local/lib/libftd2xx.so.1.4.27 /usr/local/lib/libftd2xx.so
 exit    # NO LONGER ROOT
+cd ~
 rm libftd2xx-arm-v8-1.4.27.tgz
 rm -r release
 sudo ldconfig
