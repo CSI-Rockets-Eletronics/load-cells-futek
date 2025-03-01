@@ -20,7 +20,8 @@ rm libftd2xx-arm-v8-1.4.27.tgz
 rm -r release
 sudo ldconfig
 cd ~/load-cells-futek/
-make
+
+make # Unrelated to ftd2xx library
 ```
 
 Make sure to run the following after following the steps to install the shared
