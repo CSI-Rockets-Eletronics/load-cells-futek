@@ -6,6 +6,5 @@ for file in ${files[@]}; do
     if [[ $file =~ $regex ]]
     then
     echo -n ${file##*/} | sudo tee /sys/bus/usb/drivers/ftdi_sio/unbind
-    echo "Hi"
     fi
 done
