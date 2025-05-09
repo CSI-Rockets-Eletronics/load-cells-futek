@@ -59,8 +59,6 @@ int main(int argc, char* argv[]) {
 
     IDA100 loadCell(serialNumber);
 
-    loadCell.calibrate();
-
     // in microseconds
     uint64_t lastLogTime = 0;
 

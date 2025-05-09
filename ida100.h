@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -14,11 +15,13 @@ static const int CALIBRATE_SAMPLES = 1000;
 
 class IDA100 {
    private:
+    const char* serialNumber;
     FT_HANDLE ftHandle;
     int calibZero;
 
     void die(std::string msg) {
         std::cerr << msg << std::endl;
+        close();
         exit(1);
     };
 
@@ -35,8 +38,6 @@ class IDA100 {
         safe_FT("FT_Read", FT_Read(ftHandle, buf, count, &bytesRead));
 
         if (bytesRead != count) {
-            close();
-
             std::string msg = "FT_Read: bytesRead != " + std::to_string(count);
             die(msg);
         }
@@ -47,8 +48,6 @@ class IDA100 {
         safe_FT("FT_Write", FT_Write(ftHandle, buf, count, &bytesWritten));
 
         if (bytesWritten != count) {
-            close();
-
             std::string msg =
                 "FT_Write: bytesWritten != " + std::to_string(count);
             die(msg);
@@ -94,8 +93,40 @@ class IDA100 {
         }
     }
 
+    std::string getCalibrationFileName() {
+        return std::string(serialNumber) + ".ida100calibration";
+    }
+
+    void loadCalibration() {
+        std::ifstream fin(getCalibrationFileName());
+        if (!fin.is_open()) {
+            std::cerr << "Calibration file not found, using default value"
+                      << std::endl;
+            calibZero = 0;
+            return;
+        }
+        int val;
+        fin >> val;
+        if (fin.fail()) {
+            std::cerr << "Failed to read calibration value" << std::endl;
+            return;
+        }
+        calibZero = val;
+    }
+
+    void saveCalibration() {
+        // clear the file if it exists
+        std::ofstream fout(getCalibrationFileName(), std::ios::trunc);
+        if (!fout.is_open()) {
+            std::cerr << "Failed to open calibration file for writing"
+                      << std::endl;
+            return;
+        }
+        fout << calibZero << std::endl;
+    }
+
    public:
-    IDA100(const char* serialNumber) {
+    IDA100(const char* serialNumber) : serialNumber(serialNumber) {
         // open device by serial number and store into this.ftHandle
         std::cerr << "Opening device with serial number: " << serialNumber
                   << std::endl;
@@ -111,6 +142,8 @@ class IDA100 {
 
         // 1s delay here is very important for reads to work!!!
         sleep(1);
+
+        loadCalibration();
     }
 
     ~IDA100() { close(); }
@@ -126,6 +159,8 @@ class IDA100 {
         // take median
         std::sort(samples.begin(), samples.end());
         calibZero = samples[CALIBRATE_SAMPLES / 2];
+
+        saveCalibration();
     }
 };
 
