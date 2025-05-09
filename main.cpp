@@ -9,11 +9,6 @@
 // interval for logging reading to stderr
 uint64_t LOG_INTERVAL_MS = 1000;
 
-IDA100 loadCell;
-
-// in microseconds
-uint64_t lastLogTime = 0;
-
 // -1 if no signal received
 int exit_signo = -1;
 
@@ -35,7 +30,7 @@ uint64_t micros() {
         .count();
 }
 
-void checkForCalibration() {
+void checkForCalibration(IDA100& loadCell) {
     struct pollfd fds;
     fds.fd = 0;  // stdin
     fds.events = POLLIN;
@@ -60,14 +55,17 @@ int main(int argc, char* argv[]) {
     char* serialNumber = argv[1];
     double ticksPerPound = std::stod(argv[2]);
 
-    loadCell.open(serialNumber);
-
     registerSignalHandlers();
+
+    IDA100 loadCell(serialNumber);
 
     loadCell.calibrate();
 
+    // in microseconds
+    uint64_t lastLogTime = 0;
+
     while (exit_signo == -1) {
-        checkForCalibration();
+        checkForCalibration(loadCell);
 
         uint64_t timestamp = micros();
         double lbs = loadCell.read() / ticksPerPound;
@@ -80,7 +78,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cerr << "Closing load cell (signo " << exit_signo << ")" << std::endl;
-    loadCell.close();
+    std::cerr << "Received signal " << exit_signo << ", exiting..."
+              << std::endl;
     exit(1);
 }

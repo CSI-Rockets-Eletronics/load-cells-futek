@@ -86,8 +86,16 @@ class IDA100 {
         return data;
     }
 
+    void close() {
+        if (ftHandle != nullptr) {
+            safe_FT("FT_Close", FT_Close(ftHandle));
+            ftHandle = nullptr;
+            std::cerr << "Closed device" << std::endl;
+        }
+    }
+
    public:
-    void open(const char* serialNumber) {
+    IDA100(const char* serialNumber) {
         // open device by serial number and store into this.ftHandle
         std::cerr << "Opening device with serial number: " << serialNumber
                   << std::endl;
@@ -105,7 +113,7 @@ class IDA100 {
         sleep(1);
     }
 
-    void close() { safe_FT("FT_Close", FT_Close(ftHandle)); }
+    ~IDA100() { close(); }
 
     int read() { return readRawData() - calibZero; }
 
