@@ -78,5 +78,4 @@ int main(int argc, char* argv[]) {
 
     std::cerr << "Received signal " << exit_signo << ", exiting..."
               << std::endl;
-    exit(1);
 }
