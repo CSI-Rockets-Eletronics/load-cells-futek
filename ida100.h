@@ -87,7 +87,7 @@ class IDA100 {
 
     void close() {
         if (ftHandle != nullptr) {
-            safe_FT("FT_Close", FT_Close(ftHandle));
+            FT_Close(ftHandle);
             ftHandle = nullptr;
             std::cerr << "Closed device" << std::endl;
         }
