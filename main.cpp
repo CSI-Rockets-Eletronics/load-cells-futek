@@ -4,6 +4,9 @@
 #include <chrono>
 #include <string>
 
+#include <iomanip>
+#include <sstream> 
+
 #include "ida100.h"
 
 // interval for logging reading to stderr
@@ -11,6 +14,22 @@ uint64_t LOG_INTERVAL_MS = 1000;
 
 // -1 if no signal received
 int exit_signo = -1;
+
+std::string getEasternTime(){
+	using namespace std::chrono;
+
+	auto now = system_clock::now();
+	auto now_time_t = system_clock::to_time_t(now);
+	auto microseconds = duration_cast<std::chrono::microseconds>(now.time_since_epoch()) % 1000000;
+
+	std::tm* local_tm = std::localtime(&now_time_t);
+
+	std::ostringstream oss;
+	oss << std::put_time(local_tm, "%H:%M:%S");
+	oss << "." << std::setfill('0') << std::setw(6) << microseconds.count();
+
+	return oss.str();
+}
 
 void exitHandler(int signo) { exit_signo = signo; }
 
@@ -66,12 +85,15 @@ int main(int argc, char* argv[]) {
         checkForCalibration(loadCell);
 
         uint64_t timestamp = micros();
+	std::string easternTime = getEasternTime();
         double lbs = loadCell.read() / ticksPerPound;
 
-        std::cout << "rec: " << timestamp << " " << lbs << std::endl;
+        //std::cout << "rec: " << timestamp << " " << lbs << std::endl;
+        std::cerr << "rec: " << easternTime << " " << lbs << std::endl; 
 
         if (timestamp - lastLogTime > LOG_INTERVAL_MS * 1000) {
-            std::cerr << "rec: " << timestamp << " " << lbs << std::endl;
+            std::cerr << "rec: " << easternTime << " " << lbs << std::endl;
+           // std::cerr << "rec: " << timestamp << " " << lbs << std::endl;
             lastLogTime = timestamp;
         }
     }
