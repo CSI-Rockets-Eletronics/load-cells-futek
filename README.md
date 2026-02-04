@@ -30,3 +30,15 @@ library:
 ```bash
 sudo ldconfig
 ```
+The Linux kernel automatically loads ftdi_sio, which locks the hardware and prevents the D2XX library (used by ./main) from accessing the sensors. Run the following to give permanent access to Pi: 
+```
+echo "blacklist ftdi_sio" | sudo tee /etc/modprobe.d/ftdi-blacklist.conf
+echo "blacklist usbserial" | sudo tee -a /etc/modprobe.d/ftdi-blacklist.conf
+sudo depmod -a
+```
+To undo, run:
+```
+sudo rm /etc/modprobe.d/ftdi-blacklist.conf
+sudo depmod -a
+sudo reboot
+```
