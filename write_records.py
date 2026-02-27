@@ -27,18 +27,14 @@ start_time = time.time()
 
 while True:
     records = []
-
     while has_input():
         input_line = input()
-
         if len(records) >= MAX_RECORDS_PER_BATCH:
             continue
-
         split = input_line.split(" ")
         if len(split) != 3 or split[0] != "rec:":
             continue
         _, ts, lbs = split
-
         records.append(
             {
                 "ts": int(ts),
@@ -64,27 +60,26 @@ while True:
     except Exception as e:
         if isinstance(e, KeyboardInterrupt):
             sys.exit(0)
-
         print(
-            f"Error sending records to server (requests.post failed)",
+            f"[ERROR] Failed to send {len(records)} records to server (requests.post failed): {e}",
             file=sys.stderr,
         )
         continue
 
     if result.status_code != 200:
         print(
-            f"Error sending records to server (status: {result.status_code})",
+            f"[ERROR] Failed to send {len(records)} records to server "
+            f"(status: {result.status_code}, response: {result.text[:200]})",
             file=sys.stderr,
         )
-    elif DEBUG_PRINT:
+    else:
         print(
-            # f"Sent {len(records)} records to server (compressed length={len(body_compressed)})",
-            f"Sent {len(records)} records to server",
+            f"[OK] Successfully sent {len(records)} records to server "
+            f"(status: {result.status_code})",
             file=sys.stderr,
         )
 
     record_count += len(records)
-
     elapsed_time = time.time() - start_time
     if elapsed_time >= 1:
         frequency = record_count / elapsed_time
