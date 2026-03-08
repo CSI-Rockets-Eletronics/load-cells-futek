@@ -1,11 +1,15 @@
 #include <signal.h>
 #include <sys/poll.h>
+
 #include <chrono>
 #include <string>
-#include <iomanip>
+
 #include "ida100.h"
 
+// interval for logging reading to stderr
 uint64_t LOG_INTERVAL_MS = 1000;
+
+// -1 if no signal received
 int exit_signo = -1;
 
 void exitHandler(int signo) { exit_signo = signo; }
@@ -15,6 +19,7 @@ void registerSignalHandlers() {
     sg.sa_handler = exitHandler;
     sigemptyset(&sg.sa_mask);
     sg.sa_flags = 0;
+
     sigaction(SIGINT, &sg, nullptr);
     sigaction(SIGTERM, &sg, nullptr);
 }
@@ -25,48 +30,52 @@ uint64_t micros() {
         .count();
 }
 
+void checkForCalibration(IDA100& loadCell) {
+    struct pollfd fds;
+    fds.fd = 0;  // stdin
+    fds.events = POLLIN;
+
+    if (poll(&fds, 1, 0)) {
+        std::string message;
+        std::cin >> message;
+
+        if (message == "calibrate") {
+            loadCell.calibrate();
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
-    if (argc != 5) {
+    if (argc != 3) {
         std::cerr << "Usage: " << argv[0]
-                  << " <serial1> <ticks_per_pound1> <serial2> <ticks_per_pound2>" << std::endl;
+                  << " <serial number> <ticks per pound>" << std::endl;
         exit(1);
     }
 
-    char* serial1 = argv[1];
-    double tpp1 = std::stod(argv[2]);
-    char* serial2 = argv[3];
-    double tpp2 = std::stod(argv[4]);
+    char* serialNumber = argv[1];
+    double ticksPerPound = std::stod(argv[2]);
 
     registerSignalHandlers();
 
-    IDA100 lc1(serial1);
-    IDA100 lc2(serial2);
+    IDA100 loadCell(serialNumber);
 
-    // print header
-    std::cerr << std::left
-              << std::setw(20) << "Timestamp (us)"
-              << std::setw(20) << "LoadCell1 (lbs)"
-              << std::setw(20) << "LoadCell2 (lbs)"
-              << std::endl;
-
+    // in microseconds
     uint64_t lastLogTime = 0;
-    while (exit_signo == -1) {
-        uint64_t timestamp = micros();
-        double lbs1 = lc1.read() / tpp1;
-        double lbs2 = lc2.read() / tpp2;
 
-        std::cout << "rec1: " << timestamp << " " << lbs1 << std::endl;
-        std::cout << "rec2: " << timestamp << " " << lbs2 << std::endl;
+    while (exit_signo == -1) {
+        checkForCalibration(loadCell);
+
+        uint64_t timestamp = micros();
+        double lbs = loadCell.read() / ticksPerPound;
+
+        std::cout << "rec: " << timestamp << " " << lbs << std::endl;
 
         if (timestamp - lastLogTime > LOG_INTERVAL_MS * 1000) {
-            std::cerr << std::left << std::fixed << std::setprecision(2)
-                      << std::setw(20) << timestamp
-                      << std::setw(20) << lbs1
-                      << std::setw(20) << lbs2
-                      << std::endl;
+            std::cerr << "rec: " << timestamp << " " << lbs << std::endl;
             lastLogTime = timestamp;
         }
     }
 
-    std::cerr << "Received signal " << exit_signo << ", exiting..." << std::endl;
+    std::cerr << "Received signal " << exit_signo << ", exiting..."
+              << std::endl;
 }
