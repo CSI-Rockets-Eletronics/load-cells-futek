@@ -34,13 +34,17 @@ void checkForCalibration(IDA100& loadCell) {
     struct pollfd fds;
     fds.fd = 0;  // stdin
     fds.events = POLLIN;
-
     if (poll(&fds, 1, 0)) {
         std::string message;
         std::cin >> message;
-
         if (message == "calibrate") {
-            loadCell.calibrate();
+            const int NUM_CALIBRATIONS = 10;
+            std::cerr << "Calibrating (" << NUM_CALIBRATIONS << "x)..." << std::endl;
+            for (int i = 0; i < NUM_CALIBRATIONS; i++) {
+                loadCell.calibrate();
+                std::cerr << "  calibration " << (i + 1) << "/" << NUM_CALIBRATIONS << " done" << std::endl;
+            }
+            std::cerr << "Calibration complete." << std::endl;
         }
     }
 }
